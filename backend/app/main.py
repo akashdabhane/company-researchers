@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes.research_routes import router as research_router
 from app.routes.pr_routes import router as pr_router
 from app.routes.pitch_routes import router as pitch_router
+from app.routes.chat_routes import router as chat_router
 
 
 app = FastAPI(
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(research_router)
 app.include_router(pr_router)
 app.include_router(pitch_router)
+app.include_router(chat_router)
 
 
 @app.get("/")

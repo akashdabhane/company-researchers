@@ -9,6 +9,7 @@ class CompanyState(TypedDict):
     wikipedia_data: str
     youtube_data: str
     linkedin_data: str
+    instagram_data: str
     news_data: str
     twitter_data: str
 
@@ -16,6 +17,7 @@ class CompanyState(TypedDict):
     wikipedia_research: str
     youtube_research: str
     linkedin_research: str
+    instagram_research: str
     news_research: str
     twitter_research: str
 

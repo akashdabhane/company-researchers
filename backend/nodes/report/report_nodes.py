@@ -48,6 +48,12 @@ def report_node(state: CompanyState):
                         Wikipedia Data: {state.get("wikipedia_data", {})}
 
                         News Data: {state.get("news_data", {})}
+
+                        LinkedIn Data: {state.get("linkedin_data", "")}
+
+                        Instagram Data: {state.get("instagram_data", "")}
+
+                        Twitter / X Data: {state.get("twitter_data", "")}
                         """,
                 },
             ],

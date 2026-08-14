@@ -5,12 +5,14 @@ from typing import Optional
 class ResearchRequest(BaseModel):
     company_name: str
     website_url: str
+    thread_id: Optional[str] = None
     email: Optional[str] = None
 
 
 class ResearchStreamRequest(BaseModel):
     company_name: str
     website_url: str
+    thread_id: Optional[str] = None
 
 
 class PRGenerateRequest(BaseModel):

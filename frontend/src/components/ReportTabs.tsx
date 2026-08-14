@@ -31,6 +31,18 @@ export function ReportTabs({
           Sales Pitch Studio
         </TabsTrigger>
 
+        <TabsTrigger value="linkedin">
+          LinkedIn
+        </TabsTrigger>
+
+        <TabsTrigger value="instagram">
+          Instagram
+        </TabsTrigger>
+
+        <TabsTrigger value="twitter">
+          Twitter / X
+        </TabsTrigger>
+
         <TabsTrigger value="website">
           Website
         </TabsTrigger>
@@ -71,6 +83,45 @@ export function ReportTabs({
           companyName={data.company_name}
           initialPitch={data.sales_pitch_content}
         />
+      </TabsContent>
+
+      <TabsContent value="linkedin">
+        <div className="space-y-4 rounded-lg border p-4 bg-white dark:bg-gray-900">
+          <h3 className="font-semibold text-lg">LinkedIn Intelligence</h3>
+          {data.linkedin_data ? (
+            <pre className="whitespace-pre-wrap text-xs font-mono overflow-auto max-h-[600px] bg-gray-50 dark:bg-gray-950 p-4 rounded border">
+              {data.linkedin_data}
+            </pre>
+          ) : (
+            <p className="text-sm text-gray-500">No LinkedIn data collected.</p>
+          )}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="instagram">
+        <div className="space-y-4 rounded-lg border p-4 bg-white dark:bg-gray-900">
+          <h3 className="font-semibold text-lg">Instagram Brand Insights</h3>
+          {data.instagram_data ? (
+            <pre className="whitespace-pre-wrap text-xs font-mono overflow-auto max-h-[600px] bg-gray-50 dark:bg-gray-950 p-4 rounded border">
+              {data.instagram_data}
+            </pre>
+          ) : (
+            <p className="text-sm text-gray-500">No Instagram data collected.</p>
+          )}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="twitter">
+        <div className="space-y-4 rounded-lg border p-4 bg-white dark:bg-gray-900">
+          <h3 className="font-semibold text-lg">Twitter / X Social Listening</h3>
+          {data.twitter_data ? (
+            <pre className="whitespace-pre-wrap text-xs font-mono overflow-auto max-h-[600px] bg-gray-50 dark:bg-gray-950 p-4 rounded border">
+              {data.twitter_data}
+            </pre>
+          ) : (
+            <p className="text-sm text-gray-500">No Twitter data collected.</p>
+          )}
+        </div>
       </TabsContent>
 
       <TabsContent value="website">
