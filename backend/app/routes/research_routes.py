@@ -50,6 +50,10 @@ def research_company(req: ResearchRequest):
             "youtube_data": result.get("youtube_data"),
             "news_data": result.get("news_data"),
             "wikipedia_data": result.get("wikipedia_data"),
+            "competitors_data": result.get("competitors_data"),
+            "competitor_matrix": result.get("competitor_matrix"),
+            "pr_content": result.get("pr_content"),
+            "sales_pitch_content": result.get("sales_pitch_content"),
             "report": report_content,
         }
 

@@ -19,5 +19,17 @@ class CompanyState(TypedDict):
     news_research: str
     twitter_research: str
 
+    competitors_data: str
+    competitor_matrix: str
+
+    platform: str
+    narrative_theme: str
+    human_feedback: str
+    pr_content: str
+
+    prospect_url: str
+    prospect_data: str
+    sales_pitch_content: str
+
     final_report: str
 

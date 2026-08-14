@@ -24,4 +24,9 @@ export interface ResearchResponse {
     recent_videos: any[];
     video_stats: any[];
   };
+
+  competitors_data?: string;
+  competitor_matrix?: string;
+  pr_content?: string;
+  sales_pitch_content?: string;
 }
