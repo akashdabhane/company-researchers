@@ -35,3 +35,8 @@ class CompanyState(TypedDict):
 
     final_report: str
 
+    next_agent: str
+    completed_agents: list
+    supervisor_reasoning: str
+    step_count: int
+

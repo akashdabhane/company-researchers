@@ -14,6 +14,8 @@ import {
   researchCompany,
   sendChatMessage,
   deleteChatById,
+  streamResearchCompany,
+  streamChatMessage,
 } from "@/lib/api";
 import { ChatSessionSummary, ChatSessionDetail } from "@/lib/types";
 import { Loader2, Sparkles, Building2, ExternalLink } from "lucide-react";
@@ -28,6 +30,7 @@ export default function HomePage() {
   const [activeChatDetail, setActiveChatDetail] = useState<ChatSessionDetail | null>(null);
 
   const [isResearching, setIsResearching] = useState(false);
+  const [researchProgressMsg, setResearchProgressMsg] = useState<string>("Analyzing company web data...");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
 
@@ -83,14 +86,18 @@ export default function HomePage() {
   }) => {
     const newThreadId = crypto.randomUUID();
     setIsResearching(true);
+    setResearchProgressMsg(`Initializing research pipeline for ${values.company_name}...`);
 
     try {
       toast.info(`Starting research for ${values.company_name}...`);
 
-      const researchRes = await researchCompany(
+      await streamResearchCompany(
         values.company_name,
         values.website_url,
-        newThreadId
+        newThreadId,
+        (status) => {
+          setResearchProgressMsg(status.message);
+        }
       );
 
       toast.success("Research completed!");
@@ -100,7 +107,7 @@ export default function HomePage() {
       setActiveThreadId(newThreadId);
     } catch (err: any) {
       console.error("Research failed:", err);
-      toast.error(err?.response?.data?.detail || "Research process failed. Please check inputs.");
+      toast.error(err?.message || "Research process failed. Please check inputs.");
     } finally {
       setIsResearching(false);
     }
@@ -111,27 +118,53 @@ export default function HomePage() {
 
     setIsSendingMessage(true);
 
-    // Optimistically add user message to UI
+    const tempUserMsgId = crypto.randomUUID();
     const tempUserMsg = {
-      id: crypto.randomUUID(),
+      id: tempUserMsgId,
       role: "user" as const,
       type: "text" as const,
       content: text,
       timestamp: new Date().toISOString(),
     };
 
-    if (activeChatDetail) {
-      setActiveChatDetail({
-        ...activeChatDetail,
-        messages: [...activeChatDetail.messages, tempUserMsg],
-      });
-    }
+    const tempAiMsgId = crypto.randomUUID();
+    const tempAiMsg = {
+      id: tempAiMsgId,
+      role: "assistant" as const,
+      type: "text" as const,
+      content: "",
+      timestamp: new Date().toISOString(),
+    };
+
+    // Optimistically add user message and empty streaming assistant bubble
+    setActiveChatDetail((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: [...prev.messages, tempUserMsg, tempAiMsg],
+      };
+    });
 
     try {
-      const res = await sendChatMessage(activeThreadId, text);
+      await streamChatMessage(
+        activeThreadId,
+        text,
+        (token) => {
+          setActiveChatDetail((prev) => {
+            if (!prev) return prev;
+            const updatedMessages = prev.messages.map((m) => {
+              if (m.id === tempAiMsgId) {
+                return { ...m, content: m.content + token };
+              }
+              return m;
+            });
+            return { ...prev, messages: updatedMessages };
+          });
+        }
+      );
 
-      // Replace with official server response
-      if (activeChatDetail) {
+      // Reload official updated chat detail
+      if (activeThreadId) {
         await loadChatDetail(activeThreadId);
       }
     } catch (err: any) {
@@ -225,7 +258,7 @@ export default function HomePage() {
                   What company would you like to research today?
                 </h2>
                 <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xl mx-auto">
-                  Enter a target company name and official website URL. The AI agent will crawl website data, YouTube, press releases, social channels, and generate competitive battlecards & PR campaigns.
+                  Enter a target company name and official website URL. The AI agent will gather multi-channel intelligence to generate executive reports, competitive battlecards, PR campaigns & sales pitches.
                 </p>
               </div>
 
@@ -241,8 +274,8 @@ export default function HomePage() {
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                   Conducting Multi-Channel Intelligence Gathering...
                 </h3>
-                <p className="text-sm text-slate-500 max-w-md mt-1">
-                  Scraping website content, Wikipedia history, YouTube transcripts, news articles, and building competitive matrix.
+                <p className="text-sm text-slate-500 max-w-md mt-1 font-medium animate-pulse">
+                  {researchProgressMsg}
                 </p>
               </div>
             </div>

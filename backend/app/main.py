@@ -28,6 +28,19 @@ app.include_router(pitch_router)
 app.include_router(chat_router)
 
 
+@app.on_event("startup")
+async def startup_db():
+    try:
+        from init_db import async_create_database_if_not_exists, run_alembic_migrations
+        await async_create_database_if_not_exists()
+        run_alembic_migrations()
+    except Exception as e:
+        print(f"[STARTUP WARNING] Async DB init failed: {e}")
+
+    from app.services.chat_store import chat_store
+    chat_store.init_db()
+
+
 @app.get("/")
 def health_check():
     return {"status": "healthy"}

@@ -1,71 +1,127 @@
 import json
 import os
 import uuid
-from datetime import datetime
+import datetime
 from typing import Dict, List, Optional, Any
+from app.database.database import SessionLocal, engine, Base
+from app.database.models import ChatSessionModel, ChatMessageModel
 
-
-DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "chat_history.json")
-
-class ChatStore:
+class PostgresChatStore:
     def __init__(self):
-        # Structure: { user_id: { thread_id: chat_session } }
-        self.chats: Dict[str, Dict[str, Dict[str, Any]]] = {}
-        self.load_from_disk()
+        self.init_db()
 
-    def load_from_disk(self):
+    def init_db(self):
         try:
-            if os.path.exists(DATA_FILE):
-                with open(DATA_FILE, "r", encoding="utf-8") as f:
-                    loaded = json.load(f)
-                    # Support legacy unsegregated store migration
-                    if isinstance(loaded, dict):
-                        # Check if top-level values are chats or user dicts
-                        sample = next(iter(loaded.values()), None)
-                        if sample and "thread_id" in sample:
-                            self.chats = {"anonymous": loaded}
-                        else:
-                            self.chats = loaded
+            Base.metadata.create_all(bind=engine)
+            print("[DATABASE] PostgreSQL tables created/verified successfully.")
+            self.migrate_legacy_json_if_needed()
         except Exception as e:
-            print(f"Error loading chat history from disk: {e}")
-            self.chats = {}
+            print(f"[DATABASE WARNING] Could not auto-create PostgreSQL tables: {e}")
 
-    def save_to_disk(self):
+    def migrate_legacy_json_if_needed(self):
+        """Migrate any existing chat_history.json file entries into PostgreSQL on startup."""
+        json_path = os.path.join(os.path.dirname(__file__), "..", "..", "chat_history.json")
+        if not os.path.exists(json_path):
+            return
+
+        db = SessionLocal()
         try:
-            os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-            with open(DATA_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.chats, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error saving chat history to disk: {e}")
+            with open(json_path, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
 
-    def get_user_chats(self, user_id: str) -> Dict[str, Dict[str, Any]]:
-        if user_id not in self.chats:
-            self.chats[user_id] = {}
-        return self.chats[user_id]
+            if not loaded or not isinstance(loaded, dict):
+                return
+
+            print("[DATABASE] Migrating legacy chat_history.json to PostgreSQL...")
+            
+            # Normalize user dicts
+            user_dicts = loaded
+            sample = next(iter(loaded.values()), None)
+            if sample and "thread_id" in sample:
+                user_dicts = {"anonymous": loaded}
+
+            for user_id, threads in user_dicts.items():
+                for thread_id, chat in threads.items():
+                    existing = db.query(ChatSessionModel).filter_by(thread_id=thread_id).first()
+                    if not existing:
+                        session_model = ChatSessionModel(
+                            thread_id=thread_id,
+                            user_id=user_id,
+                            company_name=chat.get("company_name", "Migrated Research"),
+                            website_url=chat.get("website_url", ""),
+                            research_data=chat.get("research_data", {}),
+                        )
+                        db.add(session_model)
+                        db.commit()
+
+                        # Add messages
+                        for m in chat.get("messages", []):
+                            msg_model = ChatMessageModel(
+                                id=m.get("id") or str(uuid.uuid4()),
+                                thread_id=thread_id,
+                                user_id=user_id,
+                                role=m.get("role", "assistant"),
+                                type=m.get("type", "text"),
+                                content=m.get("content", ""),
+                            )
+                            db.add(msg_model)
+                        db.commit()
+
+            print("[DATABASE] Legacy chat_history.json migration completed successfully.")
+            # Rename legacy file after migration
+            os.rename(json_path, json_path + ".migrated_bak")
+
+        except Exception as e:
+            print(f"[DATABASE WARNING] Migration of legacy JSON failed: {e}")
+            db.rollback()
+        finally:
+            db.close()
 
     def get_all_chats(self, user_id: str = "anonymous") -> List[Dict[str, Any]]:
-        user_chats = self.get_user_chats(user_id)
-        sorted_chats = sorted(
-            user_chats.values(),
-            key=lambda x: x.get("updated_at", ""),
-            reverse=True
-        )
-        return [
-            {
-                "thread_id": c["thread_id"],
-                "company_name": c["company_name"],
-                "website_url": c["website_url"],
-                "title": c.get("title", c["company_name"]),
-                "created_at": c["created_at"],
-                "updated_at": c["updated_at"],
-                "message_count": len(c.get("messages", [])),
-            }
-            for c in sorted_chats
-        ]
+        db = SessionLocal()
+        try:
+            sessions = (
+                db.query(ChatSessionModel)
+                .filter(ChatSessionModel.user_id == user_id)
+                .order_by(ChatSessionModel.updated_at.desc())
+                .all()
+            )
+
+            result = []
+            for s in sessions:
+                msg_count = db.query(ChatMessageModel).filter_by(thread_id=s.thread_id).count()
+                result.append({
+                    "thread_id": s.thread_id,
+                    "company_name": s.company_name,
+                    "website_url": s.website_url,
+                    "title": f"Research: {s.company_name}",
+                    "created_at": s.created_at.isoformat() if s.created_at else "",
+                    "updated_at": s.updated_at.isoformat() if s.updated_at else "",
+                    "message_count": msg_count,
+                })
+            return result
+        except Exception as e:
+            print(f"[DATABASE ERROR] get_all_chats: {e}")
+            return []
+        finally:
+            db.close()
 
     def get_chat(self, user_id: str, thread_id: str) -> Optional[Dict[str, Any]]:
-        user_chats = self.get_user_chats(user_id)
-        return user_chats.get(thread_id)
+        db = SessionLocal()
+        try:
+            session = (
+                db.query(ChatSessionModel)
+                .filter(ChatSessionModel.thread_id == thread_id, ChatSessionModel.user_id == user_id)
+                .first()
+            )
+            if not session:
+                return None
+            return session.to_detail_dict()
+        except Exception as e:
+            print(f"[DATABASE ERROR] get_chat: {e}")
+            return None
+        finally:
+            db.close()
 
     def create_or_update_research_session(
         self,
@@ -75,46 +131,57 @@ class ChatStore:
         website_url: str,
         research_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        user_chats = self.get_user_chats(user_id)
-        now = datetime.utcnow().isoformat()
-        
-        if thread_id in user_chats:
-            chat = user_chats[thread_id]
-            chat["company_name"] = company_name
-            chat["website_url"] = website_url
-            chat["title"] = f"Research: {company_name}"
-            chat["updated_at"] = now
-            chat["research_data"] = research_data
-        else:
-            chat = {
-                "thread_id": thread_id,
-                "user_id": user_id,
-                "company_name": company_name,
-                "website_url": website_url,
-                "title": f"Research: {company_name}",
-                "created_at": now,
-                "updated_at": now,
-                "research_data": research_data,
-                "messages": []
-            }
-            user_chats[thread_id] = chat
+        db = SessionLocal()
+        try:
+            session = db.query(ChatSessionModel).filter_by(thread_id=thread_id).first()
+            now = datetime.datetime.utcnow()
 
-        # Add initial assistant report message if messages empty
-        if not chat["messages"]:
-            chat["messages"].append({
-                "id": str(uuid.uuid4()),
-                "role": "assistant",
-                "type": "research_report",
-                "content": research_data.get("report", "Research process completed."),
-                "timestamp": now,
-                "metadata": {
-                    "company_name": company_name,
-                    "website_url": website_url
-                }
-            })
+            if session:
+                session.user_id = user_id
+                session.company_name = company_name
+                session.website_url = website_url
+                session.research_data = research_data
+                session.updated_at = now
+            else:
+                session = ChatSessionModel(
+                    thread_id=thread_id,
+                    user_id=user_id,
+                    company_name=company_name,
+                    website_url=website_url,
+                    research_data=research_data,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(session)
+                db.commit()
 
-        self.save_to_disk()
-        return chat
+            # Ensure initial assistant report message if empty
+            msg_count = db.query(ChatMessageModel).filter_by(thread_id=thread_id).count()
+            if msg_count == 0:
+                report_text = research_data.get("report") if isinstance(research_data, dict) else "Research process completed."
+                if not report_text:
+                    report_text = "Research process completed."
+                initial_msg = ChatMessageModel(
+                    id=str(uuid.uuid4()),
+                    thread_id=thread_id,
+                    user_id=user_id,
+                    role="assistant",
+                    type="research_report",
+                    content=report_text,
+                    timestamp=now,
+                )
+                db.add(initial_msg)
+                db.commit()
+
+            db.refresh(session)
+            return session.to_detail_dict()
+
+        except Exception as e:
+            db.rollback()
+            print(f"[DATABASE ERROR] create_or_update_research_session: {e}")
+            raise e
+        finally:
+            db.close()
 
     def add_message(
         self,
@@ -125,31 +192,50 @@ class ChatStore:
         msg_type: str = "text",
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        user_chats = self.get_user_chats(user_id)
-        if thread_id not in user_chats:
-            raise ValueError(f"Chat thread {thread_id} not found for user {user_id}")
+        db = SessionLocal()
+        try:
+            session = db.query(ChatSessionModel).filter_by(thread_id=thread_id).first()
+            if not session:
+                raise ValueError(f"Chat thread {thread_id} not found in database.")
 
-        now = datetime.utcnow().isoformat()
-        msg = {
-            "id": str(uuid.uuid4()),
-            "role": role,
-            "type": msg_type,
-            "content": content,
-            "timestamp": now,
-            "metadata": metadata or {}
-        }
-        user_chats[thread_id]["messages"].append(msg)
-        user_chats[thread_id]["updated_at"] = now
-        self.save_to_disk()
-        return msg
+            now = datetime.datetime.utcnow()
+            msg = ChatMessageModel(
+                id=str(uuid.uuid4()),
+                thread_id=thread_id,
+                user_id=user_id,
+                role=role,
+                type=msg_type,
+                content=content,
+                timestamp=now,
+            )
+            session.updated_at = now
+            db.add(msg)
+            db.commit()
+            db.refresh(msg)
+            return msg.to_dict()
+
+        except Exception as e:
+            db.rollback()
+            print(f"[DATABASE ERROR] add_message: {e}")
+            raise e
+        finally:
+            db.close()
 
     def delete_chat(self, user_id: str, thread_id: str) -> bool:
-        user_chats = self.get_user_chats(user_id)
-        if thread_id in user_chats:
-            del user_chats[thread_id]
-            self.save_to_disk()
-            return True
-        return False
+        db = SessionLocal()
+        try:
+            session = db.query(ChatSessionModel).filter_by(thread_id=thread_id, user_id=user_id).first()
+            if session:
+                db.delete(session)
+                db.commit()
+                return True
+            return False
+        except Exception as e:
+            db.rollback()
+            print(f"[DATABASE ERROR] delete_chat: {e}")
+            return False
+        finally:
+            db.close()
 
 
-chat_store = ChatStore()
+chat_store = PostgresChatStore()
