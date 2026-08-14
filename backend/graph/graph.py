@@ -15,6 +15,9 @@ from nodes.linkedin.linkedin_nodes import linkedin_node
 from nodes.instagram.instagram_nodes import instagram_node
 from nodes.twitter.twitter_nodes import twitter_node
 from nodes.competitors.competitor_nodes import competitor_discovery_node
+from nodes.location.location_nodes import location_node
+from nodes.tech.tech_nodes import tech_stack_node
+from nodes.financial.financial_nodes import financial_node
 from nodes.report.report_nodes import report_node
 from nodes.pr.pr_nodes import pr_copywriter_node
 from nodes.pitch.pitch_nodes import sales_pitch_node
@@ -42,6 +45,9 @@ builder.add_node("linkedin", make_worker("linkedin", linkedin_node))
 builder.add_node("instagram", make_worker("instagram", instagram_node))
 builder.add_node("twitter", make_worker("twitter", twitter_node))
 builder.add_node("competitor", make_worker("competitor", competitor_discovery_node))
+builder.add_node("location", make_worker("location", location_node))
+builder.add_node("tech_stack", make_worker("tech_stack", tech_stack_node))
+builder.add_node("financial", make_worker("financial", financial_node))
 builder.add_node("report", make_worker("report", report_node))
 builder.add_node("pr_copywriter", make_worker("pr_copywriter", pr_copywriter_node))
 builder.add_node("sales_pitch", make_worker("sales_pitch", sales_pitch_node))
@@ -68,6 +74,9 @@ builder.add_conditional_edges(
         "instagram": "instagram",
         "twitter": "twitter",
         "competitor": "competitor",
+        "location": "location",
+        "tech_stack": "tech_stack",
+        "financial": "financial",
         "report": "report",
         "pr_copywriter": "pr_copywriter",
         "sales_pitch": "sales_pitch",
@@ -84,6 +93,9 @@ builder.add_edge("linkedin", "supervisor")
 builder.add_edge("instagram", "supervisor")
 builder.add_edge("twitter", "supervisor")
 builder.add_edge("competitor", "supervisor")
+builder.add_edge("location", "supervisor")
+builder.add_edge("tech_stack", "supervisor")
+builder.add_edge("financial", "supervisor")
 builder.add_edge("report", "supervisor")
 builder.add_edge("pr_copywriter", "supervisor")
 builder.add_edge("sales_pitch", "supervisor")

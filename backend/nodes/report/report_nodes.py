@@ -54,6 +54,14 @@ def report_node(state: CompanyState):
                         Instagram Data: {state.get("instagram_data", "")}
 
                         Twitter / X Data: {state.get("twitter_data", "")}
+
+                        Competitor Analysis: {state.get("competitor_matrix", "")}
+
+                        Location & Footprint Data: {state.get("location_data", "")}
+
+                        Tech Stack & Infrastructure Audit: {state.get("tech_stack_data", "")}
+
+                        Financials & Valuation Data: {state.get("financial_data", "")}
                         """,
                 },
             ],

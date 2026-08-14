@@ -11,13 +11,16 @@ AVAILABLE_AGENTS = [
     "instagram",
     "twitter",
     "competitor",
+    "location",
+    "tech_stack",
+    "financial",
     "report",
     "pr_copywriter",
     "sales_pitch",
     "FINISH"
 ]
 
-MAX_STEPS = 8
+MAX_STEPS = 10
 
 def supervisor_node(state: CompanyState):
     company_name = state.get("company_name", "Unknown Company")
@@ -74,6 +77,9 @@ def supervisor_node(state: CompanyState):
         "instagram_data": bool(state.get("instagram_data")),
         "twitter_data": bool(state.get("twitter_data")),
         "competitors_data": bool(state.get("competitors_data")),
+        "location_data": bool(state.get("location_data")),
+        "tech_stack_data": bool(state.get("tech_stack_data")),
+        "financial_data": bool(state.get("financial_data")),
     }
 
     # Build prompt for LLM Orchestrator decision
@@ -95,6 +101,9 @@ Execution History & Status:
   * Instagram Data: {"Collected" if data_status["instagram_data"] else "Missing"}
   * Twitter / X Data: {"Collected" if data_status["twitter_data"] else "Missing"}
   * Competitor Analysis: {"Collected" if data_status["competitors_data"] else "Missing"}
+  * Corporate Footprint / Location: {"Collected" if data_status["location_data"] else "Missing"}
+  * Tech Stack Audit: {"Collected" if data_status["tech_stack_data"] else "Missing"}
+  * Financials & Funding: {"Collected" if data_status["financial_data"] else "Missing"}
 
 Your Task:
 Decide the SINGLE NEXT sub-agent to invoke to gather research or synthesize results.
@@ -102,12 +111,12 @@ Decide the SINGLE NEXT sub-agent to invoke to gather research or synthesize resu
 Rules:
 1. Do NOT re-invoke an agent that is already in Completed Agents ({completed_agents}).
 2. Priority 1: Gather primary web research ("website") if website data is missing.
-3. Priority 2: Gather key channels ("wikipedia", "youtube", "news", "competitor") if relevant data is missing.
-4. Priority 3: Once adequate research data has been gathered (at least 2-3 primary sources like website, wikipedia, news, or competitors), route to "report" to synthesize the executive report.
+3. Priority 2: Gather specialized intelligence ("location", "tech_stack", "financial", "competitor", "news", "wikipedia") if missing.
+4. Priority 3: Once adequate research data has been gathered (at least 2-3 primary sources), route to "report" to synthesize the executive report.
 5. If enough information is gathered or if all primary agents have run, route to "report".
 
 Valid options for next_agent MUST be one of:
-["website", "wikipedia", "youtube", "news", "linkedin", "instagram", "twitter", "competitor", "report", "pr_copywriter", "sales_pitch", "FINISH"]
+["website", "wikipedia", "youtube", "news", "linkedin", "instagram", "twitter", "competitor", "location", "tech_stack", "financial", "report", "pr_copywriter", "sales_pitch", "FINISH"]
 
 Respond strictly in JSON format with no extra markdown backticks:
 {{

@@ -24,6 +24,10 @@ class CompanyState(TypedDict):
     competitors_data: str
     competitor_matrix: str
 
+    location_data: str
+    tech_stack_data: str
+    financial_data: str
+
     platform: str
     narrative_theme: str
     human_feedback: str

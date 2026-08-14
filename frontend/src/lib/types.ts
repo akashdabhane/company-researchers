@@ -6,6 +6,9 @@ export interface ResearchResponse {
 
   competitors_data?: string;
   competitor_matrix?: string;
+  location_data?: string;
+  tech_stack_data?: string;
+  financial_data?: string;
   linkedin_data?: string;
   instagram_data?: string;
   twitter_data?: string;
