@@ -2,17 +2,10 @@ from graph.state import CompanyState
 from langchain_google_genai import ChatGoogleGenerativeAI  # ← only this changes
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-import json
-import os
+from lib.llm import llm
+
 
 memory = MemorySaver() # directory=os.path.join(os.getcwd(), "agent_memory")
-
-# 1. Define your LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    convert_system_message_to_human=True,  # ← required for Gemini
-)
 
 
 # 3. Create the agent — this builds the full ReAct loop for you
@@ -64,3 +57,5 @@ def report_node(state: CompanyState):
     print("\n\n\n data:", "*"*20, data)
 
     return {"final_report": data}
+
+    

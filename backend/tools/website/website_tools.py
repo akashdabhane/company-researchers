@@ -1,15 +1,10 @@
-import os
-from firecrawl import Firecrawl
+from lib.firecrawl_client import firecrawl_client
 from langchain.tools import tool
 from dotenv import load_dotenv
 
 
 load_dotenv()  # Load environment variables from .env file
 
-
-firecrawl = Firecrawl(
-    api_key=os.getenv("FIRECRAWL_API_KEY")
-)
 
 
 @tool
@@ -24,7 +19,7 @@ def search_web_via_firecrawl(query: str, limit: int = 5, location: str = None):
         list: A list of search results, where each result is a dictionary containing 'title', 'url', and 'snippet'.
     """
 
-    results = firecrawl.search(
+    results = firecrawl_client.search(
         query=query, limit=limit, location=location if location else None
     )
 
@@ -40,11 +35,11 @@ def interact_with_website_scrapped_data(scrape_id: str, prompt: str):
     output: The result of the interaction.
     """
     # 1. Scrape the page
-    # scrape = firecrawl.scrape_url("https://example.com")
+    # scrape = firecrawl_client.scrape_url("https://example.com")
     # scrape_id = scrape.metadata.scrape_id
 
     # 2. Interact with a prompt
-    result = firecrawl.interact(
+    result = firecrawl_client.interact(
         scrape_id,
         prompt=prompt,
     )
@@ -52,7 +47,7 @@ def interact_with_website_scrapped_data(scrape_id: str, prompt: str):
     # print("Live view:", result.live_view_url)
 
     # 3. Stop when done
-    firecrawl.stop_interaction(scrape_id)
+    firecrawl_client.stop_interaction(scrape_id)
 
     return {"output": result.output}
 
@@ -66,7 +61,7 @@ def crawl_website(website_url: str):
     output: A list of URLs found on the website.
     """
 
-    result = firecrawl.map_url(website_url)
+    result = firecrawl_client.map_url(website_url)
     print("\n\n\ncrawled URLs:", result)
 
     return {"all_urls": result}
@@ -103,7 +98,7 @@ def scrape_pages(important_urls: list):
 
     for url in important_urls[:15]:
 
-        result = firecrawl.scrape_url(url, formats=["markdown"])
+        result = firecrawl_client.scrape_url(url, formats=["markdown"])
         content.append(f"\n\nPAGE: {url}\n" f"{result.markdown}")
 
     return {"website_content": "\n".join(content)}

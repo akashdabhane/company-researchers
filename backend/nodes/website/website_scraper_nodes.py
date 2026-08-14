@@ -1,12 +1,9 @@
-from firecrawl import FirecrawlApp
 from tools.website.website_tools import search_web_via_firecrawl, crawl_website, filter_urls, scrape_pages
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from lib.llm import llm
+from lib.firecrawl_client import firecrawl_client
 
-firecrawlapp = FirecrawlApp(
-    api_key="FIRECRAWL_API_KEY"
-)
 
 IMPORTANT_KEYWORDS = [
     "about",
@@ -56,11 +53,11 @@ def website_scraper_node(state):
 
 def interact_with_website_scrapped_data_node(state):
     # 1. Scrape the page
-    scrape = firecrawlapp.scrape_url("https://example.com")
+    scrape = firecrawl_client.scrape_url("https://example.com")
     scrape_id = scrape.metadata.scrape_id
 
     # 2. Interact with a prompt
-    result = firecrawlapp.interact(
+    result = firecrawl_client.interact(
         scrape_id,
         prompt="Click the login button and fill in the email field with test@example.com",
     )
@@ -68,13 +65,13 @@ def interact_with_website_scrapped_data_node(state):
     print("Live view:", result.live_view_url)
 
     # 3. Chain another interaction
-    result2 = firecrawlapp.interact(
+    result2 = firecrawl_client.interact(
         scrape_id,
         prompt="Submit the form and tell me what happens",
     )
 
     # 4. Stop when done
-    firecrawlapp.stop_interaction(scrape_id)
+    firecrawl_client.stop_interaction(scrape_id)
 
 
 def web_search_node(state):
@@ -84,13 +81,6 @@ def web_search_node(state):
 
 
 ## wikipedia agent
-# 1. Define your LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    convert_system_message_to_human=True,  # ← required for Gemini
-)
-
 # 2. Register all your tools in a list
 tools = [
     search_web_via_firecrawl, 
@@ -146,3 +136,5 @@ def website_scraper_node2(state):
     return {
         "website_data": content,
     }
+
+    

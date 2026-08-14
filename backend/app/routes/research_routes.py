@@ -1,46 +1,17 @@
-import json
-from typing import Optional
-from fastapi import FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel
-import uvicorn
-
+import json
 from graph.graph import graph
+from app.schemas.research_schema import ResearchRequest, ResearchStreamRequest
 
-app = FastAPI(
-    title="Company Researcher API",
-    description="FastAPI backend for AI Company Research Agent",
-    version="1.0.0",
-)
 
-# Enable CORS for all routes
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+router = APIRouter(
+    prefix="/api",
+    tags=["Research"],
 )
 
 
-class ResearchRequest(BaseModel):
-    company_name: str
-    website_url: str
-    email: Optional[str] = None
-
-
-class ResearchStreamRequest(BaseModel):
-    company_name: str
-    website_url: str
-
-
-@app.get("/api/health")
-def health_check():
-    return {"status": "healthy"}
-
-
-@app.post("/api/research")
+@router.post("/research")
 def research_company(req: ResearchRequest):
     if not req.company_name or not req.website_url:
         raise HTTPException(
@@ -91,7 +62,8 @@ def research_company(req: ResearchRequest):
         )
 
 
-@app.post("/api/research-stream")
+
+@router.post("/research-stream")
 def research_company_stream(req: ResearchStreamRequest):
     config = {
         "configurable": {
@@ -124,5 +96,3 @@ def research_company_stream(req: ResearchStreamRequest):
     )
 
 
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)

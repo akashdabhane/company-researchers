@@ -1,24 +1,13 @@
 from langchain_core.tools import tool
-from googleapiclient.discovery import build
-import os
 from dotenv import load_dotenv
-import ssl
-import httplib2
 from googleapiclient.errors import HttpError
+from sklearn.feature_extraction.text import CountVectorizer
+from datetime import datetime
+from lib.youtube_client import youtube_client
 
 
 load_dotenv()
 
-# Disable SSL verification — only for local dev/testing, never in production
-http = httplib2.Http(disable_ssl_certificate_validation=True)
-
-
-youtube = build(
-    "youtube", 
-    "v3", 
-    developerKey=os.getenv("YOUTUBE_API_KEY"),
-    http=http
-)
 
 @tool
 def get_channel_info_by_id(channel_id: str) -> dict:
@@ -26,7 +15,7 @@ def get_channel_info_by_id(channel_id: str) -> dict:
     Get YouTube channel statistics and info given a channel ID.
     Returns subscriber count, view count, video count, title, description.
     """
-    response = youtube.channels().list(
+    response = youtube_client.channels().list(
         part="snippet,statistics",
         id=channel_id
     ).execute()
@@ -47,7 +36,7 @@ def search_channel_by_name(company_name: str) -> dict:
     Search for a YouTube channel by company or creator name.
     Returns the channel ID and title of the best match.
     """
-    response = youtube.search().list(
+    response = youtube_client.search().list(
         part="snippet",
         q=company_name,
         type="channel",
@@ -71,7 +60,7 @@ def get_channel_by_handle(handle: str) -> dict:   # ← added : str -> dict
     Get YouTube channel information by its handle (e.g., @GoogleDeepMind).
     Returns channel ID, title, description, and statistics.
     """
-    response = youtube.channels().list(
+    response = youtube_client.channels().list(
         part="snippet,statistics,brandingSettings",
         forHandle=handle.replace("@", "")
     ).execute()
@@ -95,7 +84,7 @@ def get_recent_videos(channel_id: str, max_results: int = 10) -> list:
     Get the most recent videos from a YouTube channel.
     Returns a list of video titles, IDs, and publish dates.
     """
-    response = youtube.search().list(
+    response = youtube_client.search().list(
         part="snippet",
         channelId=channel_id,
         maxResults=max_results,
@@ -120,7 +109,7 @@ def get_video_stats(video_id: str) -> dict:
     Get engagement statistics for a specific YouTube video.
     Returns view count, like count, and comment count.
     """
-    response = youtube.videos().list(
+    response = youtube_client.videos().list(
         part="statistics,snippet",
         id=video_id
     ).execute()
@@ -142,7 +131,7 @@ def get_video_comments(video_id: str, max_results: int = 100) -> list:  # ← ad
     """
 
     try:
-        response = youtube.commentThreads().list(
+        response = youtube_client.commentThreads().list(
             part="snippet",
             videoId=video_id,
             maxResults=max_results,
@@ -179,7 +168,7 @@ def search_channel_videos(
     Accepts a channel ID and a search keyword, and returns videos from that channel that match the keyword in their title or description.
     """
 
-    response = youtube.search().list(
+    response = youtube_client.search().list(
         part="snippet",
         channelId=channel_id,
         q=keyword,
@@ -194,8 +183,6 @@ def search_channel_videos(
         }
         for item in response["items"]
     ]
-
-
 
 
 
@@ -253,7 +240,7 @@ def get_channel_playlists(channel_id: str) -> list:
     Returns a list of playlist titles and IDs.
     """
 
-    response = youtube.playlists().list(
+    response = youtube_client.playlists().list(
         part="snippet",
         channelId=channel_id,
         maxResults=50
@@ -278,7 +265,7 @@ def get_trending_videos(region_code: str = "IN"):
     """
 
     response = (
-        youtube.videos()
+        youtube_client.videos()
         .list(
             part="snippet,statistics",
             chart="mostPopular",

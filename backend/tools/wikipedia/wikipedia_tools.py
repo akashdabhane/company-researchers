@@ -1,8 +1,4 @@
 from langchain_core.tools import tool
-import os
-from dotenv import load_dotenv
-# import ssl
-# import httplib2
 import wikipedia
 
 

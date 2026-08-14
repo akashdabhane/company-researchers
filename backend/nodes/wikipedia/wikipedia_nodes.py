@@ -9,9 +9,10 @@ from tools.wikipedia.wikipedia_tools import (
     wikipedia_page_url
 )
                                             
-from langchain_google_genai import ChatGoogleGenerativeAI   # ← only this changes
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from lib.llm import llm
+
 
 
 def wikipedia_node(state: CompanyState):
@@ -27,12 +28,6 @@ def wikipedia_node(state: CompanyState):
 
 
 ## wikipedia agent
-# 1. Define your LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    convert_system_message_to_human=True,  # ← required for Gemini
-)
 
 # 2. Register all your tools in a list
 tools = [
@@ -88,3 +83,5 @@ def wikipedia_node2(state):
     return {
         "wikipedia_data": content,
     }
+
+    

@@ -15,3 +15,6 @@ def news_node(state: CompanyState):
     return {
         "instagram_data": instagram_data
     }
+
+
+    

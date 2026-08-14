@@ -17,7 +17,7 @@ from tools.youtube.youtube_tools import (
     get_video_comments,
     search_channel_videos
 )
-from langchain_google_genai import ChatGoogleGenerativeAI   # ← only this changes
+from lib.llm import llm
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -42,12 +42,6 @@ def youtube_node(state: CompanyState):
 
 
 ## youtueb agent
-# 1. Define your LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    convert_system_message_to_human=True,  # ← required for Gemini
-)
 
 # 2. Register all your tools in a list
 tools = [
