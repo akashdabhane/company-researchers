@@ -14,23 +14,27 @@ def get_linkedin_company_profile(company_name: str) -> str:
     
     # 1. Try Apify LinkedIn Scraper
     apify_items = run_apify_actor(
-        actor_id="apify/linkedin-company-scraper",
+        actor_id="johnvc/linkedin-company-api",
         run_input={
-            "search": company_name,
-            "maxResults": 1,
+            "companyNames": [company_name],
         },
         timeout_secs=60
     )
     
-    if apify_items and len(apify_items) > 0:
-        item = apify_items[0]
+    # Skip error rows (they carry error_message instead of company data)
+    company_items = [i for i in (apify_items or []) if not i.get("error_message")]
+    if company_items:
+        item = company_items[0]
+        industries = item.get("industries", "")
+        if isinstance(industries, list):
+            industries = ", ".join(str(i) for i in industries)
         profile_info = {
             "name": item.get("name", company_name),
-            "tagline": item.get("tagline", ""),
+            "tagline": item.get("slogan", ""),
             "description": item.get("description", ""),
-            "industry": item.get("industry", ""),
+            "industry": industries,
             "company_size": item.get("companySize", ""),
-            "followers": item.get("followerCount", "N/A"),
+            "followers": item.get("followers", "N/A"),
             "website": item.get("website", ""),
             "headquarters": item.get("headquarters", ""),
         }
@@ -50,22 +54,24 @@ def get_linkedin_posts(company_name: str) -> str:
     print(f"[LinkedIn Tool] Fetching posts for '{company_name}'...")
     
     apify_items = run_apify_actor(
-        actor_id="apify/linkedin-post-scraper",
+        actor_id="johnvc/linkedin-post-search-api",
         run_input={
-            "searchKeywords": company_name,
-            "maxPosts": 5,
+            "keywords": [company_name],
+            "maxPostsPerKeyword": 5,
         },
         timeout_secs=60
     )
     
-    if apify_items and len(apify_items) > 0:
+    # Skip error rows (they carry errorMessage instead of post data)
+    post_items = [i for i in (apify_items or []) if not i.get("errorMessage")]
+    if post_items:
         posts = []
-        for item in apify_items[:5]:
+        for item in post_items[:5]:
             posts.append({
                 "text": item.get("text", item.get("postText", "")),
                 "likes": item.get("numLikes", item.get("likesCount", 0)),
                 "comments": item.get("numComments", item.get("commentsCount", 0)),
-                "posted_at": item.get("postedAt", item.get("time", "")),
+                "posted_at": item.get("datePosted", item.get("postedAt", item.get("time", ""))),
                 "url": item.get("postUrl", item.get("url", ""))
             })
         return json.dumps(posts, indent=2)
